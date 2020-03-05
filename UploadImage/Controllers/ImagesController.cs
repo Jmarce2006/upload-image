@@ -89,6 +89,15 @@ namespace UploadImage.Controllers
             }
 
             var images = await _context.Images.FindAsync(id);
+            string img64Url = null;
+
+            if (images.ImageData != null)
+            {
+                string img64 = Convert.ToBase64String(images.ImageData);
+                img64Url = string.Format("data:{0};base64,{1}", "jpeg", img64); //imagetype can be e.g. gif, jpeg, png etc
+            }
+            ViewData["foto"] = img64Url;
+            
             if (images == null)
             {
                 return NotFound();
@@ -101,7 +110,7 @@ namespace UploadImage.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,ImageTitle,ImageData")] Images images)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,ImageTitle,ImageData")] Images images, List<IFormFile> ImageData)
         {
             if (id != images.Id)
             {
@@ -112,6 +121,18 @@ namespace UploadImage.Controllers
             {
                 try
                 {
+                    foreach (var item in ImageData)
+                    {
+                        if (item.Length > 0)
+                        {
+                            using (var stream = new MemoryStream())
+                            {
+                                await item.CopyToAsync(stream);
+                                images.ImageData = stream.ToArray();
+                            }
+                        }
+                    }
+
                     _context.Update(images);
                     await _context.SaveChangesAsync();
                 }
